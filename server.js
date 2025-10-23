@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const contactRoutes = require('./routes/contactRoutes');
 
 const app = express();
 
@@ -9,11 +10,14 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({ 
+  origin: 'https://my-portfolio-okue.onrender.com', 
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'], 
+  allowedHeaders: ['Content-Type','Authorization'] 
+}));
 app.use(express.json());
 
 // Routes
-const contactRoutes = require('./routes/contactRoutes');
 app.use('/api/contact', contactRoutes);
 
 // Health check
@@ -23,6 +27,4 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
