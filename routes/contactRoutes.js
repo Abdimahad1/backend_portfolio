@@ -8,7 +8,7 @@ const {
   deleteMessage
 } = require('../controllers/contactController');
 
-const { sendEmail } = require('../utils/email');
+const { sendEmail } = require('../utils/sendEmail');
 
 // ✅ Updated /send route
 router.post('/send', async (req, res) => {
