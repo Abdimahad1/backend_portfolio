@@ -4,6 +4,12 @@ const { Resend } = require('resend');
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/**
+ * Send an email via Resend
+ * @param {string} to - recipient email
+ * @param {string} subject - email subject
+ * @param {string} html - email HTML content
+ */
 async function sendEmail({ to, subject, html }) {
   try {
     const response = await resend.emails.send({
