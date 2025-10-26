@@ -1,70 +1,99 @@
-// controllers/contactController.js
 const ContactMessage = require('../models/ContactMessage');
 const { sendEmail } = require('../utils/sendEmail');
 
 /**
  * Create a new contact message
- * Saves to MongoDB and sends email notification via Resend
  */
 exports.createMessage = async (req, res) => {
   try {
     const { name, email, phone, subject, message } = req.body;
 
+    console.log('📝 Received contact form submission:', { name, email });
+
     // Validate required fields
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, and message are required',
+        message: 'Name, email, and message are required fields',
       });
     }
 
-    // Save message to DB
+    // Save message to database
     const newMessage = await ContactMessage.create({
-      name,
-      email,
-      phone,
-      subject,
-      message,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone ? phone.trim() : undefined,
+      subject: subject ? subject.trim() : 'No Subject',
+      message: message.trim(),
     });
 
-    // Compose HTML email
+    console.log('💾 Message saved to database:', newMessage._id);
+
+    // Prepare email content
     const emailHtml = `
-      <h2>📩 New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
-      <p><strong>Subject:</strong> ${subject || 'No Subject'}</p>
-      <p><strong>Message:</strong><br/>${message}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #7C3AED;">📩 New Contact Form Submission</h2>
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px;">
+          <p><strong>👤 Name:</strong> ${name}</p>
+          <p><strong>📧 Email:</strong> ${email}</p>
+          <p><strong>📞 Phone:</strong> ${phone || 'Not provided'}</p>
+          <p><strong>📋 Subject:</strong> ${subject || 'No subject'}</p>
+          <p><strong>💬 Message:</strong></p>
+          <div style="background: white; padding: 15px; border-radius: 5px; margin-top: 10px;">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+        </div>
+        <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+          This message was sent from your portfolio contact form.
+        </p>
+      </div>
     `;
 
-    // Send notification email using Resend
-    await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'engmaalik07@gmail.com',
-      subject: `New Contact Message from ${name}`,
-      html: emailHtml,
-    });
+    // Send email notification
+    try {
+      await sendEmail({
+        to: process.env.SUPPORT_EMAIL || 'engmaalik07@gmail.com',
+        subject: `New Contact: ${name} - ${subject || 'Portfolio Message'}`,
+        html: emailHtml,
+      });
+      console.log('✅ Notification email sent successfully');
+    } catch (emailError) {
+      console.error('⚠️ Email sending failed, but message was saved:', emailError.message);
+      // Continue - don't fail the request if email fails
+    }
 
-    console.log('📧 Notification email sent successfully.');
-
-    // Respond to frontend
+    // Success response
     res.status(201).json({
       success: true,
-      message: 'Message sent successfully',
-      data: newMessage,
+      message: 'Thank you for your message! I will get back to you soon.',
+      data: {
+        id: newMessage._id,
+        name: newMessage.name,
+        email: newMessage.email
+      }
     });
+
   } catch (error) {
     console.error('❌ Error in createMessage:', error);
+    
+    // Specific error handling
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input data',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Failed to send message',
-      error: error.message,
+      message: 'Failed to send message. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
-/**
- * Get all messages
- */
+// Keep your other controller methods the same...
 exports.getMessages = async (req, res) => {
   try {
     const messages = await ContactMessage.find().sort({ createdAt: -1 });
@@ -75,9 +104,6 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-/**
- * Get a single message by ID
- */
 exports.getMessageById = async (req, res) => {
   try {
     const message = await ContactMessage.findById(req.params.id);
@@ -90,9 +116,6 @@ exports.getMessageById = async (req, res) => {
   }
 };
 
-/**
- * Delete a message by ID
- */
 exports.deleteMessage = async (req, res) => {
   try {
     const message = await ContactMessage.findByIdAndDelete(req.params.id);

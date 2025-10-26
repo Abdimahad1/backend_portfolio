@@ -1,30 +1,38 @@
 require('dotenv').config();
 const { Resend } = require('resend');
 
+console.log('🔧 Checking Resend configuration...');
+console.log('API Key present:', !!process.env.RESEND_API_KEY);
+console.log('From email:', process.env.DEFAULT_FROM_EMAIL);
+
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Send an email via Resend
- * @param {string} to - recipient email
- * @param {string} subject - email subject
- * @param {string} html - email HTML content
  */
 async function sendEmail({ to, subject, html }) {
   try {
-    const response = await resend.emails.send({
+    console.log('📤 Attempting to send email to:', to);
+    
+    const { data, error } = await resend.emails.send({
       from: `${process.env.ORG_NAME} <${process.env.DEFAULT_FROM_EMAIL}>`,
-      to,
-      subject,
-      html,
+      to: Array.isArray(to) ? to : [to],
+      subject: subject,
+      html: html,
     });
 
-    console.log('✅ Email sent successfully:', response?.id || 'no id');
-    return response;
+    if (error) {
+      console.error('❌ Resend API error:', error);
+      throw new Error(`Resend error: ${error.message}`);
+    }
+
+    console.log('✅ Email sent successfully. ID:', data?.id || 'No ID returned');
+    console.log('📧 Recipient:', to);
+    return data;
   } catch (error) {
     console.error('❌ Failed to send email:', error.message);
-    console.error('🔍 Full error:', error);
-    throw new Error('Failed to send email');
+    throw error;
   }
 }
 
