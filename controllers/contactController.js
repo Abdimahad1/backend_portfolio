@@ -49,14 +49,14 @@ exports.createMessage = async (req, res) => {
       </div>
     `;
 
-    // Send email notification
+    // Send email notification using Resend (fast and reliable)
     try {
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL || process.env.SMTP_USER,
+        to: process.env.SUPPORT_EMAIL,
         subject: `New Contact: ${name} - ${subject || 'Portfolio Message'}`,
         html: emailHtml,
       });
-      console.log('✅ Notification email sent successfully');
+      console.log('✅ Notification email sent successfully via Resend');
     } catch (emailError) {
       console.error('⚠️ Email sending failed, but message was saved:', emailError.message);
       // Continue - don't fail the request if email fails

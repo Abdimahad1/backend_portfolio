@@ -1,52 +1,36 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-console.log('🔧 Checking Email configuration...');
-console.log('SMTP User:', process.env.SMTP_USER);
+console.log('🔧 Checking Resend configuration...');
+console.log('API Key present:', !!process.env.RESEND_API_KEY);
 console.log('From email:', process.env.DEFAULT_FROM_EMAIL);
 
-// Create Gmail transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Send an email via Gmail SMTP
+ * Send an email via Resend
  */
 async function sendEmail({ to, subject, html }) {
   try {
     console.log('📤 Attempting to send email to:', to);
     
-    const mailOptions = {
-      from: `${process.env.ORG_NAME} <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: `${process.env.ORG_NAME} <${process.env.DEFAULT_FROM_EMAIL}>`,
       to: Array.isArray(to) ? to : [to],
       subject: subject,
       html: html,
-    };
+    });
 
-    const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully. ID:', result.messageId);
-    console.log('📧 Recipient:', to);
-    return result;
-    
+    if (error) {
+      console.error('❌ Resend API error:', error);
+      throw new Error(`Resend error: ${error.message}`);
+    }
+
+    console.log('✅ Email sent successfully. ID:', data?.id);
+    return data;
   } catch (error) {
     console.error('❌ Failed to send email:', error.message);
     throw error;
   }
 }
-
-// Verify transporter on startup
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log('❌ SMTP connection error:', error);
-  } else {
-    console.log('✅ SMTP server is ready to take our messages');
-  }
-});
 
 module.exports = { sendEmail };
