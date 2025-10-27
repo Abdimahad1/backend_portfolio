@@ -1,35 +1,31 @@
 require('dotenv').config();
-const { Resend } = require('resend');
-
-console.log('🔧 Checking Resend configuration...');
-console.log('API Key present:', !!process.env.RESEND_API_KEY);
-console.log('From email:', process.env.DEFAULT_FROM_EMAIL);
-
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
 
 /**
- * Send an email via Resend
+ * Send an email using Gmail SMTP
  */
 async function sendEmail({ to, subject, html }) {
   try {
-    console.log('📤 Attempting to send email to:', to);
-    
-    const { data, error } = await resend.emails.send({
-      from: `${process.env.ORG_NAME} <${process.env.DEFAULT_FROM_EMAIL}>`,
-      to: Array.isArray(to) ? to : [to],
-      subject: subject,
-      html: html,
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_SECURE === 'true', // false for port 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
     });
 
-    if (error) {
-      console.error('❌ Resend API error:', error);
-      throw new Error(`Resend error: ${error.message}`);
-    }
+    const mailOptions = {
+      from: `${process.env.ORG_NAME} <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    };
 
-    console.log('✅ Email sent successfully. ID:', data?.id || 'No ID returned');
-    console.log('📧 Recipient:', to);
-    return data;
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully:', info.messageId);
+    return info;
   } catch (error) {
     console.error('❌ Failed to send email:', error.message);
     throw error;

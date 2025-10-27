@@ -49,51 +49,39 @@ exports.createMessage = async (req, res) => {
       </div>
     `;
 
-    // Send email notification
+    // Send notification email
     try {
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL || 'engmaalik07@gmail.com',
+        to: process.env.SUPPORT_EMAIL,
         subject: `New Contact: ${name} - ${subject || 'Portfolio Message'}`,
         html: emailHtml,
       });
       console.log('✅ Notification email sent successfully');
     } catch (emailError) {
       console.error('⚠️ Email sending failed, but message was saved:', emailError.message);
-      // Continue - don't fail the request if email fails
     }
 
-    // Success response
+    // Respond to frontend
     res.status(201).json({
       success: true,
       message: 'Thank you for your message! I will get back to you soon.',
       data: {
         id: newMessage._id,
         name: newMessage.name,
-        email: newMessage.email
-      }
+        email: newMessage.email,
+      },
     });
 
   } catch (error) {
     console.error('❌ Error in createMessage:', error);
-    
-    // Specific error handling
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid input data',
-        error: error.message
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: 'Failed to send message. Please try again later.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
-// Keep your other controller methods the same...
+// Get all messages
 exports.getMessages = async (req, res) => {
   try {
     const messages = await ContactMessage.find().sort({ createdAt: -1 });
@@ -104,6 +92,7 @@ exports.getMessages = async (req, res) => {
   }
 };
 
+// Get message by ID
 exports.getMessageById = async (req, res) => {
   try {
     const message = await ContactMessage.findById(req.params.id);
@@ -116,6 +105,7 @@ exports.getMessageById = async (req, res) => {
   }
 };
 
+// Delete message
 exports.deleteMessage = async (req, res) => {
   try {
     const message = await ContactMessage.findByIdAndDelete(req.params.id);

@@ -7,10 +7,8 @@ const {
   deleteMessage,
 } = require('../controllers/contactController');
 
-// POST /send - just call the controller
+// Routes
 router.post('/send', createMessage);
-
-// Other routes
 router.get('/', getMessages);
 router.get('/:id', getMessageById);
 router.delete('/:id', deleteMessage);
