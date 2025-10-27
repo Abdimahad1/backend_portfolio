@@ -7,10 +7,16 @@ const {
   deleteMessage,
 } = require('../controllers/contactController');
 
-// Routes
+// POST /api/contact/send - Create new contact message
 router.post('/send', createMessage);
+
+// GET /api/contact - Get all messages (for admin)
 router.get('/', getMessages);
+
+// GET /api/contact/:id - Get single message by ID
 router.get('/:id', getMessageById);
+
+// DELETE /api/contact/:id - Delete a message
 router.delete('/:id', deleteMessage);
 
 module.exports = router;

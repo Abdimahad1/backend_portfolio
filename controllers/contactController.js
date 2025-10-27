@@ -49,71 +49,120 @@ exports.createMessage = async (req, res) => {
       </div>
     `;
 
-    // Send notification email
+    // Send email notification
     try {
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL,
+        to: process.env.SUPPORT_EMAIL || process.env.SMTP_USER,
         subject: `New Contact: ${name} - ${subject || 'Portfolio Message'}`,
         html: emailHtml,
       });
       console.log('✅ Notification email sent successfully');
     } catch (emailError) {
       console.error('⚠️ Email sending failed, but message was saved:', emailError.message);
+      // Continue - don't fail the request if email fails
     }
 
-    // Respond to frontend
+    // Success response
     res.status(201).json({
       success: true,
       message: 'Thank you for your message! I will get back to you soon.',
       data: {
         id: newMessage._id,
         name: newMessage.name,
-        email: newMessage.email,
-      },
+        email: newMessage.email
+      }
     });
 
   } catch (error) {
     console.error('❌ Error in createMessage:', error);
+    
+    // Specific error handling
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input data',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to send message. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
-// Get all messages
+/**
+ * Get all contact messages
+ */
 exports.getMessages = async (req, res) => {
   try {
     const messages = await ContactMessage.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: messages });
+    res.status(200).json({ 
+      success: true, 
+      count: messages.length,
+      data: messages 
+    });
   } catch (err) {
     console.error('❌ Error in getMessages:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch messages',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
-// Get message by ID
+/**
+ * Get single message by ID
+ */
 exports.getMessageById = async (req, res) => {
   try {
     const message = await ContactMessage.findById(req.params.id);
-    if (!message)
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    res.status(200).json({ success: true, data: message });
+    if (!message) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Message not found' 
+      });
+    }
+    res.status(200).json({ 
+      success: true, 
+      data: message 
+    });
   } catch (err) {
     console.error('❌ Error in getMessageById:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch message',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
-// Delete message
+/**
+ * Delete a message
+ */
 exports.deleteMessage = async (req, res) => {
   try {
     const message = await ContactMessage.findByIdAndDelete(req.params.id);
-    if (!message)
-      return res.status(404).json({ success: false, message: 'Message not found' });
-    res.status(200).json({ success: true, message: 'Message deleted' });
+    if (!message) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Message not found' 
+      });
+    }
+    res.status(200).json({ 
+      success: true, 
+      message: 'Message deleted successfully',
+      data: { id: message._id }
+    });
   } catch (err) {
     console.error('❌ Error in deleteMessage:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete message',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
